@@ -5,46 +5,54 @@ from collections import deque
 from ui import *
 
 graph = {
-    0: [1, 2],
-    1: [0, 3, 4],
-    2: [0, 5],
-    3: [1],
-    4: [1, 5, 6],
-    5: [2, 4, 7],
-    6: [4],
-    7: [5]
+    "A": ["B", "C"],
+    "B": ["A", "D", "E"],
+    "C": ["A", "F"],
+    "D": ["B"],
+    "E": ["B", "F", "G"],
+    "F": ["C", "E", "H"],
+    "G": ["E"],
+    "H": ["F"]
 }
 
 positions = {
-    0: (250, 170),
-    1: (150, 290),
-    2: (380, 290),
-    3: (90, 450),
-    4: (240, 450),
-    5: (420, 450),
-    6: (620, 450),
-    7: (560, 290)
+    "A": (280, 160),
+    "B": (160, 300),
+    "C": (430, 300),
+    "D": (110, 500),
+    "E": (300, 500),
+    "F": (500, 500),
+    "G": (700, 500),
+    "H": (640, 300)
 }
 
 selected_start = None
 
 visited_nodes = []
+
 current_node = None
 
-algorithm = None
+algorithm = []
 
-animation_index = 0
-animation_timer = 0
+path_edges = []
 
-message = "Select a start node"
+message = "Select a starting node"
 
 running_algorithm = False
 
+animation_index = 0
+
+animation_timer = 0
+
 def bfs(start):
+
     visited = set()
-    order = []
 
     queue = deque([start])
+
+    order = []
+
+    edges = []
 
     visited.add(start)
 
@@ -57,16 +65,24 @@ def bfs(start):
         for neighbor in graph[node]:
 
             if neighbor not in visited:
+
                 visited.add(neighbor)
+
                 queue.append(neighbor)
 
-    return order
+                edges.append((node, neighbor))
+
+    return order, edges
 
 def dfs(start):
+
     visited = set()
-    order = []
 
     stack = [start]
+
+    order = []
+
+    edges = []
 
     while stack:
 
@@ -79,9 +95,14 @@ def dfs(start):
             order.append(node)
 
             for neighbor in reversed(graph[node]):
-                stack.append(neighbor)
 
-    return order
+                if neighbor not in visited:
+
+                    stack.append(neighbor)
+
+                    edges.append((node, neighbor))
+
+    return order, edges
 
 def draw_graph(screen):
 
@@ -92,12 +113,22 @@ def draw_graph(screen):
             x1, y1 = positions[node]
             x2, y2 = positions[neighbor]
 
+            color = (140, 140, 140)
+
+            thickness = 4
+
+            if (node, neighbor) in path_edges or (neighbor, node) in path_edges:
+
+                color = (90, 220, 120)
+
+                thickness = 8
+
             pygame.draw.line(
                 screen,
-                (120, 120, 120),
+                color,
                 (x1, y1),
                 (x2, y2),
-                4
+                thickness
             )
 
     for node, (x, y) in positions.items():
@@ -105,47 +136,52 @@ def draw_graph(screen):
         color = BLUE
 
         if node in visited_nodes:
-            color = (100, 200, 120)
+
+            color = (120, 210, 130)
 
         if node == current_node:
+
             color = RED
 
         if node == selected_start:
-            color = (240, 180, 60)
+
+            color = (255, 190, 70)
 
         pygame.draw.circle(
             screen,
             color,
             (x, y),
-            35
+            40
         )
 
         pygame.draw.circle(
             screen,
             BLACK,
             (x, y),
-            35,
+            40,
             3
         )
 
         draw_text(
             screen,
-            str(node),
-            28,
+            node,
+            30,
             WHITE,
             x,
             y
         )
 
 def reset_graph():
+
     global selected_start
     global visited_nodes
     global current_node
     global algorithm
-    global animation_index
-    global animation_timer
+    global path_edges
     global message
     global running_algorithm
+    global animation_index
+    global animation_timer
 
     selected_start = None
 
@@ -153,12 +189,15 @@ def reset_graph():
 
     current_node = None
 
-    algorithm = None
+    algorithm = []
 
-    animation_index = 0
-    animation_timer = 0
+    path_edges = []
 
     running_algorithm = False
+
+    animation_index = 0
+
+    animation_timer = 0
 
     message = "Graph reset"
 
@@ -168,26 +207,41 @@ def run(screen, clock):
     global visited_nodes
     global current_node
     global algorithm
-    global animation_index
-    global animation_timer
+    global path_edges
     global message
     global running_algorithm
+    global animation_index
+    global animation_timer
 
     reset_graph()
 
     running = True
 
-    back_button = pygame.Rect(30, 25, 120, 45)
+    back_button = pygame.Rect(30, 25, 140, 50)
 
-    bfs_button = pygame.Rect(260, 650, 180, 50)
+    bfs_button = pygame.Rect(180, 700, 220, 60)
 
-    dfs_button = pygame.Rect(500, 650, 180, 50)
+    dfs_button = pygame.Rect(500, 700, 220, 60)
 
-    reset_button = pygame.Rect(740, 650, 180, 50)
+    reset_button = pygame.Rect(820, 700, 220, 60)
 
     while running:
 
-        screen.fill(BACKGROUND)
+        screen.fill((235, 240, 248))
+
+        pygame.draw.rect(
+            screen,
+            (225, 230, 240),
+            (40, 110, 1120, 540),
+            border_radius=22
+        )
+
+        pygame.draw.rect(
+            screen,
+            (220, 225, 235),
+            (40, 670, 1120, 120),
+            border_radius=22
+        )
 
         draw_text(
             screen,
@@ -195,24 +249,24 @@ def run(screen, clock):
             48,
             BLACK,
             600,
-            45
+            40
         )
 
         draw_text(
             screen,
-            "Click a node to choose the starting point",
+            "Breadth First Search and Depth First Search",
             24,
             BLACK,
             600,
-            95
+            82
         )
 
         draw_graph(screen)
 
         pygame.draw.rect(
             screen,
-            (220, 220, 220),
-            (120, 570, 960, 40),
+            (240, 240, 240),
+            (180, 650, 840, 40),
             border_radius=10
         )
 
@@ -222,7 +276,7 @@ def run(screen, clock):
             22,
             BLACK,
             600,
-            590
+            670
         )
 
         draw_button(
@@ -261,7 +315,7 @@ def run(screen, clock):
 
             animation_timer += 1
 
-            if animation_timer >= 25:
+            if animation_timer >= 28:
 
                 animation_timer = 0
 
@@ -271,7 +325,7 @@ def run(screen, clock):
 
                     visited_nodes.append(current_node)
 
-                    message = f"Visiting node {current_node}"
+                    message = f"Visiting Node {current_node}"
 
                     animation_index += 1
 
@@ -288,12 +342,15 @@ def run(screen, clock):
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
+
                 pygame.quit()
+
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
 
                 if event.key == pygame.K_ESCAPE:
+
                     running = False
 
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -301,28 +358,33 @@ def run(screen, clock):
                 pos = event.pos
 
                 if back_button.collidepoint(pos):
+
                     running = False
 
                 if reset_button.collidepoint(pos):
+
                     reset_graph()
 
                 if not running_algorithm:
 
                     for node, (x, y) in positions.items():
 
-                        distance = ((pos[0] - x) ** 2 + (pos[1] - y) ** 2) ** 0.5
+                        distance = (
+                            (pos[0] - x) ** 2 +
+                            (pos[1] - y) ** 2
+                        ) ** 0.5
 
-                        if distance <= 35:
+                        if distance <= 40:
 
                             selected_start = node
 
-                            message = f"Selected node {node} as start"
+                            message = f"Selected Start Node: {node}"
 
                 if bfs_button.collidepoint(pos):
 
                     if selected_start is not None:
 
-                        algorithm = bfs(selected_start)
+                        algorithm, path_edges = bfs(selected_start)
 
                         visited_nodes = []
 
@@ -336,7 +398,7 @@ def run(screen, clock):
 
                     if selected_start is not None:
 
-                        algorithm = dfs(selected_start)
+                        algorithm, path_edges = dfs(selected_start)
 
                         visited_nodes = []
 
